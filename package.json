@@ -1,0 +1,17 @@
+{
+  "name": "inflearn-fullstack-react-toy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/newkidsean/inflearn-fullstack-react-toy.git",
+  "author": "sean-onuii <sean1.onuii@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "client": "yarn workspace client start",
+    "server": "yarn workspace server start"
+  }
+}
