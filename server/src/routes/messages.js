@@ -9,10 +9,13 @@ const messagesRoute = [
     // 전체 메시지 가져오기
     method: 'get',
     route: '/messages',
-    handler: (req, res) => {
+    // handler: (req, res) => {
+    handler: ({ query: { cursor = '' } }, res) => {
       // const msgs = readDB('messages');
       const msgs = getMsgs();
-      res.send(msgs);
+      const fromIndex = msgs.findIndex(msg => msg.id === cursor) + 1;
+      // res.send(msgs);
+      res.send(msgs.slice(fromIndex, fromIndex + 15));
     }
   },
   {
@@ -35,17 +38,22 @@ const messagesRoute = [
     method: 'post',
     route: '/messages',
     handler: ({ body }, res) => {
-      const msgs = getMsgs();
-      const newMsg = {
-        id: v4(),
-        text: body.text,
-        userId: body.userId,
-        timestamp: Date.now()
-      };
-      msgs.unshift(newMsg);
-      // writeDB('messages', msgs);
-      setMsgs(msgs)
-      res.send(newMsg);
+      try {
+        if (!body.userId) throw Error('no userId')
+        const msgs = getMsgs();
+        const newMsg = {
+          id: v4(),
+          text: body.text,
+          userId: body.userId,
+          timestamp: Date.now()
+        };
+        msgs.unshift(newMsg);
+        // writeDB('messages', msgs);
+        setMsgs(msgs)
+        res.send(newMsg);
+      } catch (err) {
+        res.status(500).send({ error: err });
+      }
     }
   },
   {
@@ -73,12 +81,14 @@ const messagesRoute = [
     // delete
     method: 'delete',
     route: '/messages/:id',
-    handler: ({ body, params: { id } }, res) => {
+    handler: (req, res) => {
+      console.log({ req });
+      const { body, params: { id }, query: { userId } } = req;
       try {
         const msgs = getMsgs();
         const targetIndex = msgs.findIndex(msg => msg.id === id);
         if (targetIndex < 0) throw "There's no message";
-        if (msgs[targetIndex].userId !== body.userId) throw "Different User"
+        if (msgs[targetIndex].userId !== userId) throw "Different User"
 
         msgs.splice(targetIndex, 1);
         setMsgs(msgs);

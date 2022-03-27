@@ -37,7 +37,7 @@ h1 {
     border-radius: 5px;
     border: solid 1px #aaa;
     h3 {
-      font-size: 0.85rem;
+      font-size: 0.85em;
       margin: 0 0 10px;
     }
     sub {
@@ -55,7 +55,7 @@ h1 {
       width: 100%;
     }
   }
-  &__button {
+  &__buttons {
     display: none;
     position: absolute;
     text-align: right;
