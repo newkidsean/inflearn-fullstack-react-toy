@@ -143,16 +143,16 @@ const MsgList = ({ smsgs, users }) => {
     <>
       {userId && <MsgInput mutate={onCreate} />}
       <ul className="messages">{
-        msgs.map(x =>
+        msgs.map(msg =>
           <MsgItem
-            key={x.id}
-            {...x}
+            key={msg.id}
+            {...msg}
             onUpdate={onUpdate}
-            startEdit={() => setEditingId(x.id)}
-            isEditing={editingId === x.id}
-            onDelete={() => onDelete(x.id)}
+            startEdit={() => setEditingId(msg.id)}
+            isEditing={editingId === msg.id}
+            onDelete={() => onDelete(msg.id)}
             myId={userId}
-            user={users[x.userId]}
+            user={users[msg.userId]}
           />)
       }</ul>
       <div ref={fetchMoreEl} />
