@@ -29,6 +29,7 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
 // smsgs 는 SSR 로 구현되어 들어오는 messages props
 const MsgList = ({ smsgs, users }) => {
+  // return null;
   // query 를 통해 userId 를 가지고 옴
   const { query } = useRouter();
   // windows 의 경우 대문자를 자동으로 소문자로 변환하는 경우가 있어서
@@ -41,9 +42,10 @@ const MsgList = ({ smsgs, users }) => {
   // 위에는 CRS 이었지만 SSR 로 바꾸면서 props 로 받은 메시지들을 setState 해 준다
   const [msgs, setMsgs] = useState(smsgs);
   const [editingId, setEditingId] = useState(null);
+
+  // 아래 세 줄은 무한 스크롤을 위한 용도
   const [hasNext, setHasNext] = useState(true);
   const fetchMoreEl = useRef(null);
-
   const intersecting = useInfiniteScroll(fetchMoreEl);
 
   // 서버 연결 전에는 아래와 같이 뉴메세지 객체를 만들어서 useState 에 넣어주어야 했지만,

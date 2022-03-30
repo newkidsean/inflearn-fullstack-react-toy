@@ -13,6 +13,8 @@ const MsgItem = ({
   myId,
   user
 }) => {
+  // console.log({ user });
+  // console.log({ userId });
   return (
     <li className="messages__item">
       <h3>
