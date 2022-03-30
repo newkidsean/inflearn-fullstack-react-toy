@@ -36,6 +36,10 @@ export const getServerSideProps = async () => {
   // 메시지는 기존 코드를 유지하기 위해 alias 사용
   const { messages: smsgs } = await fetcher(GET_MESSAGES);
   const { users } = await fetcher(GET_USERS);
+
+  // 위에처럼 await 를 사용하면 fetcher 통신을 순서대로 두번 날려야 한다. 이는 성능 저하는 불러올 수 있기 때문에
+  // 아래처럼 promise all 을 통해 병렬 구조로 비동기 통신이 이루어 지도록 수정 
+  // const [{ messages: smsgs }, { users }] = await Promise.all[fetcher(GET_MESSAGES), fetcher(GET_USERS)];
   console.log('get server side props :', users);
   console.log(smsgs);
   return {

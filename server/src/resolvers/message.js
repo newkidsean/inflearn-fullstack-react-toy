@@ -14,9 +14,12 @@ const messageResolver = {
     // 여기서 context 는 index.js 에서 아폴로 서버 객체를 만들 때 들어있는 그 context
     // 여기서는 바로 context 안에 들어있는 db 를 꺼내서 사용
     // messages: (obj, args, context) => {},
-    messages: (parent, args, { db }) => {
-      // console.log({ parent, args, context })
-      return db.messages;
+    // messages: (parent, args, { db }) => {
+    // args 부분은 REST 에서 했던 것과 동일하게 cursor 를 넣어 준다 
+    // console.log({ parent, args, context })
+    messages: (parent, { cursor = '' }, { db }) => {
+      const fromIndex = db.messages.findIndex(msg => msg.id === cursor) + 1
+      return db.messages?.slice(fromIndex, fromIndex + 15) || []
     },
     // id 가 없는 경우를 대비해서 디폴트로 ''를 설정해 줌 
     message: (parent, { id = '' }, { db }) => {

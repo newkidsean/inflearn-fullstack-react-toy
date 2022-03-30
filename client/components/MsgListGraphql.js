@@ -3,9 +3,9 @@ import { useRouter } from 'next/router';
 import MsgItem from './MsgItem';
 import MsgInput from './MsgInput';
 import { fetcher, QueryKeys } from '../queryClient';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { CREATE_MESSAGE, GET_MESSAGES, UPDATE_MESSAGE, DELETE_MESSAGE } from '../graphql/message';
-// import useInfiniteScroll from '../hooks/useInfiniteScroll';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
 // smsgs 는 SSR 로 구현되어 들어오는 messages props
 const MsgListGraphql = ({ smsgs, users }) => {
@@ -30,8 +30,8 @@ const MsgListGraphql = ({ smsgs, users }) => {
 
   // 아래 세 줄은 무한 스크롤을 위한 용도
   // const [hasNext, setHasNext] = useState(true);
-  // const fetchMoreEl = useRef(null);
-  // const intersecting = useInfiniteScroll(fetchMoreEl);
+  const fetchMoreEl = useRef(null);
+  const intersecting = useInfiniteScroll(fetchMoreEl)
 
   // mutation 은 text 를 입력받아서 fetcher 함수에 text와 userId 를 variables 로 넣어서 날려주고,
   // 성공하면 반환되는 메시지를 react-query 가 관리하는 cache 에 저장하도록 한다
@@ -51,16 +51,17 @@ const MsgListGraphql = ({ smsgs, users }) => {
 
   const { mutate: onUpdate } = useMutation(({ text, id }) => fetcher(UPDATE_MESSAGE, { text, id, userId }), {
     onSuccess: ({ updateMessage }) => {
-      client.setQueryData(QueryKeys.MESSAGES, old => {
-        const targetIndex = old.messages.findIndex(msg => msg.id === updateMessage.id);
-        if (targetIndex < 0) return old;
-        const newMsgs = [...old.messages];
-        newMsgs.splice(targetIndex, 1, updateMessage);
-        return { messages: newMsgs };
-      })
       doneEdit()
-    }
-  });
+      client.setQueryData(QueryKeys.MESSAGES, old => {
+        const { pageIndex, msgIndex } = findTargetMsgIndex(old.pages, updateMessage.id)
+        if (pageIndex < 0 || msgIndex < 0) return old
+        const newMsgs = getNewMessages(old)
+        newMsgs.pages[pageIndex].messages.splice(msgIndex, 1, updateMessage)
+        return newMsgs
+      })
+    },
+  })
+
 
   const doneEdit = () => setEditingId(null);
 
@@ -88,22 +89,62 @@ const MsgListGraphql = ({ smsgs, users }) => {
   // 여기서 props 로 받은 smsgs 는 SSR을 통해 날아온 정보이고, 하이드레이션 세팅을 통해 일단 캐시에 저장되어 있다.
   // 아래 쿼리는 앱이 실행되면 실행되어 쿼리를 받아오지만, 이미 한번 SSR 을 통해 캐시에 저장되어 있는 데이터가 있기 때문에
   // 둘이 비교해서 차이가 없다면 굳이 새 데이터로 바꿔치기 하지 않고, 기존에 저장되어 있는 데이터를 반환하게 된다
-  const { data, error, isError } = useQuery(QueryKeys.MESSAGES, () => fetcher(GET_MESSAGES));
+  // const { data, error, isError } = useQuery(QueryKeys.MESSAGES, () => fetcher(GET_MESSAGES));
 
+
+  const { data, error, isError, fetchNextPage, hasNextPage } = useInfiniteQuery(
+    QueryKeys.MESSAGES,
+    ({ pageParam = '' }) =>
+      // console.log({ res });
+      // console 로 res 를 찍어보면 아래와 같다
+      // res:
+      // meta: undefined
+      // pageParam: undefined
+      // queryKey: ['MESSAGES']
+      fetcher(GET_MESSAGES, { cursor: pageParam }),
+    {
+      // getNextPageParam 에 들어오는 res 를 콘솔로 찍어보면 messages: [{}, {}] 이 들어온다
+      // 즉, 응답받은 messages 배열이 들어오기 때문에 리턴값은 제일 마지막 메시지의 id 를 리턴해 줌으로써
+      // 해당 id 값을 커서 로 이용할 수 있게 한다
+      // console.log({ res });
+      getNextPageParam: ({ messages }) => {
+        return messages?.[messages.length - 1]?.id
+      },
+    },
+  );
+
+  // infinity scroll 적용 전
   useEffect(() => {
     if (!data?.messages) return;
     console.log('msgs changed');
     setMsgs(data.messages);
-  }, [data?.messages])
+  }, [data?.messages]);
+
+  // infinity scroll 적용 후
+  // 왜냐하면 인피니티 스크롤은 설정한 page 단위별로 데이터가 들어오기 때문
+  useEffect(() => {
+    if (!data?.pages) return;
+    // data.pages 는 아래와 같은 구조로 들어오기 때문에 page 변화에 따라 msgs 를 업데이트 해 주려면
+    // flatten 작업이 필요하다
+    // const data.pages = [{ messages: [...]}, { messages: [...]}] => [...]
+    const mergedMsgs = data.pages.flatMap(page => page.messages);
+    setMsgs(mergedMsgs);
+  }, [data?.pages]);
 
   if (isError) {
     console.error(error);
     return null;
   };
 
+  // infinity scroll 적용 전
   // useEffect(() => {
   //   if (intersecting && hasNext) getMessages();
   // }, [intersecting]);
+
+  // infinity scroll 적용 후
+  useEffect(() => {
+    if (intersecting && hasNextPage) fetchNextPage();
+  }, [intersecting, hasNextPage]);
 
   return (
     <>
@@ -121,7 +162,7 @@ const MsgListGraphql = ({ smsgs, users }) => {
             user={users.find(user => user.id === msg.userId)}
           />)
       }</ul>
-      {/* <div ref={fetchMoreEl} /> */}
+      <div ref={fetchMoreEl} />
     </>
   )
 }
