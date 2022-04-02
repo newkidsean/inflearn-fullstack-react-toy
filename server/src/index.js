@@ -6,6 +6,7 @@ import usersRoute from './routes/users.js';
 import { readDB } from './dbController.js';
 import resolvers from './resolvers/index.js';
 import schema from './schema/index.js';
+import db from './dbControllerByLowDb.js';
 
 /* 여기는 REST API 를 이용한 부분
 const app = express();
@@ -39,6 +40,8 @@ app.listen(8000, () => {
 
 // 여기부터는 GraphQL 을 이용한 부분
 
+const app = express();
+
 const server = new ApolloServer({
   typeDefs: schema,
   resolvers,
@@ -50,7 +53,6 @@ const server = new ApolloServer({
   },
 })
 
-const app = express()
 await server.start()
 server.applyMiddleware({
   app,
@@ -63,3 +65,32 @@ server.applyMiddleware({
 
 await app.listen({ port: 8000 });
 console.log('server listening on 8000...');
+
+/* GraphQL 에 LowDB 를 적용한 부분
+
+const readDB = () => {
+  db.read()
+  return db.data;
+}
+
+const app = express();
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  }),
+);
+
+const server = new ApolloServer({
+  typeDefs: schema,
+  resolvers,
+  context: {
+    models: readDB(),
+  },
+});
+
+server.applyMiddleware({ app, path: '/graphql'});
+app.listen(8000, () => {
+  console.log('server listening on 8000...');
+});
+*/

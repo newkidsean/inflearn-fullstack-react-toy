@@ -57,6 +57,9 @@ const messageResolver = {
       setMsgs(db.messages)
       return id
     },
+  },
+  Message: {
+    user: (msg, args, { db }) => db.users[msg.userId],
   }
 }
 
